@@ -141,6 +141,8 @@ svg text{font-family:var(--body)}
 .chip.ok{color:var(--good);border-color:#2f4a3a}
 .chip.warn{color:var(--danger);border-color:#5a3a2e}
 .view{display:none}.view.on{display:block}
+.bk{width:100%;min-height:72px;background:var(--surface2);border:1px solid var(--line);border-radius:10px;color:var(--ink);
+  font-size:12px;font-family:ui-monospace,Menlo,monospace;padding:10px;margin-bottom:8px;word-break:break-all}
 .hint{font-size:12px;color:var(--ink-faint);padding:0 2px 14px}
 </style>
 </head>
@@ -294,7 +296,7 @@ async function writeState(){
   const payload=JSON.stringify(state);
   const s=stor();
   if(saveMode!=='local'&&s){
-    try{await s.set(KEY,payload);setChip('saved');return true;}
+    try{await s.set(KEY,payload);if(localOK()){try{window.localStorage.setItem(KEY,payload);}catch(e){}}setChip('saved');return true;}
     catch(e){
       try{await s.set(KEY,payload);setChip('saved');return true;}
       catch(e2){/* Claude storage unreachable — fall through to device storage */}
@@ -551,10 +553,38 @@ function renderMaxes(){
     ${Object.keys(LIFT_NAMES).map(k=>`<div class="maxrow"><label>${LIFT_NAMES[k]}</label>
       <input type="number" inputmode="decimal" placeholder="lb" value="${state.maxes[k]??''}" onchange="setMax('${k}',this.value)"></div>`).join('')}
   </div>
+  <div class="card"><h3>Backup &amp; Restore</h3>
+    <div class="note" style="margin-bottom:10px">Your log lives on this device. After training, copy a backup code (paste it into Notes). To move data between browsers — or recover it — paste a code below and restore.</div>
+    <div class="ex-actions" style="margin-bottom:10px"><button class="btn primary" onclick="exportData()">Copy Backup Code</button></div>
+    <textarea class="bk" id="bkArea" placeholder="Paste a backup code here to restore"></textarea>
+    <div class="ex-actions"><button class="btn" onclick="importData()">Restore From Code</button></div>
+    <div class="note" id="bkMsg" style="margin-top:8px"></div>
+  </div>
   <div class="card"><h3>How the wave works</h3>
     <div class="note">Weeks 1–2 build volume at 70–75%. Week 3 pushes strength at 80%. Week 4 is a deliberate deload — go light, move crisply, let recovery catch up. Weeks 5–6 go heavy at 85–90%. If a target weight feels harder than the listed RPE, cut 5–10 lb; if easier, add 5. Never grind reps in weeks 1–4.</div></div>`;
 }
 function setMax(k,v){state.maxes[k]=v===''?null:Number(v);save();renderNav();renderDay();}
+function exportData(){
+  const code=btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+  const ta=document.getElementById('bkArea');ta.value=code;
+  const msg=document.getElementById('bkMsg');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(
+      ()=>{msg.textContent='Copied to clipboard ✓ — paste it into Notes to keep it safe.';},
+      ()=>{ta.focus();ta.select();msg.textContent='Code shown above — long-press to select and copy.';});
+  }else{ta.focus();ta.select();msg.textContent='Code shown above — long-press to select and copy.';}
+}
+function importData(){
+  const msg=document.getElementById('bkMsg');
+  const v=document.getElementById('bkArea').value.trim();
+  if(!v){msg.textContent='Paste a backup code first.';return;}
+  try{
+    const s=JSON.parse(decodeURIComponent(escape(atob(v))));
+    if(!s||typeof s!=='object'||!('logs' in s))throw new Error('bad');
+    state=Object.assign(state,s);save();renderNav();
+    msg.textContent='Restored ✓ — '+Object.keys(state.logs).length+' logged exercises, '+state.weights.length+' weigh-in(s). Everything is back.';
+  }catch(e){msg.textContent='That code didn\u2019t parse — make sure you pasted the whole thing with no gaps.';}
+}
 
 /* ---------- Views ---------- */
 function switchView(v){
