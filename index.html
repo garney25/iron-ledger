@@ -105,6 +105,7 @@ body{padding-bottom:112px;max-width:520px;margin:0 auto;transition:background .3
 .ex-body{border-top:1px solid var(--line);padding:10px 13px 13px;display:none}
 .ex.open .ex-body{display:block}
 .note{font-size:12px;color:var(--ink-faint)}
+.prevline{font-size:12px;color:var(--accent);background:var(--accent-soft);border:1px solid transparent;border-radius:9px;padding:6px 10px;margin-bottom:10px;font-weight:600}
 .ex-body .note{margin-bottom:10px}
 .setrow{display:grid;grid-template-columns:32px 1fr 1fr 46px;gap:8px;align-items:center;margin-bottom:8px}
 .setrow .lbl{font-family:var(--display);font-weight:600;color:var(--ink-faint);font-size:13px;text-align:center}
@@ -364,11 +365,11 @@ function iconFor(name){
 /* ================= STATE / STORAGE / SYNC ================= */
 const KEY='iron-ledger-v1';
 const USERS=['garney','shane'];
-function blankUser(start){return {logs:{},checks:{},weights:[],maxes:{},goal:210,start:start||null,updatedAt:0};}
+function blankUser(start){return {logs:{},checks:{},weights:[],maxes:{},goal:210,start:start||null,cycle:1,prev:null,updatedAt:0};}
 let state={v:3,activeUser:'garney',week:1,day:'sun',syncUrl:'',users:{garney:blankUser(193),shane:blankUser(null)}};
 function U(){return state.users[state.activeUser];}
 function migrate(s){
-  if(s&&s.v===3&&s.users)return s;
+  if(s&&s.v===3&&s.users){USERS.forEach(u=>{s.users[u]=Object.assign(blankUser(null),s.users[u]||{});});return s;}
   if(s&&('logs' in s)){ // v1/v2 flat shape -> becomes Garney's profile
     const g=blankUser(s.start||193);
     g.logs=s.logs||{};g.checks=s.checks||{};g.weights=s.weights||[];g.maxes=s.maxes||{};
@@ -548,7 +549,7 @@ function renderDay(){
     return;
   }
   const wk=state.week;
-  let html=`<div class="focusbar"><div class="t">${esc(day.focus)}</div><div class="w">Week ${wk}</div></div>`;
+  let html=`<div class="focusbar"><div class="t">${esc(day.focus)}</div><div class="w">Week ${wk}${(U().cycle||1)>1?' · Cycle '+U().cycle:''}</div></div>`;
   html+=proteinStrip();
   html+=`<div class="card"><h3>Warm-Up · Mobility</h3>`+
     day.warmup.map((w,i)=>{
@@ -587,6 +588,7 @@ function renderDay(){
       </div>
       <div class="ex-body">
         ${scheme?'':`<div class="note">${ACC_NOTE}</div>`}
+        ${prevLine(i)}
         ${setRows}
         <div class="ex-actions"><button class="btn" onclick="startTimer(${ex.rest||90})">Rest ${fmtRest(ex.rest||90)}</button></div>
       </div>
@@ -613,6 +615,32 @@ function toggleSet(exIdx,setIdx,rest){
   const r=U().logs[k][setIdx];r.done=!r.done;save();
   if(r.done)startTimer(rest);
   renderNav();renderDay();
+}
+
+/* ================= CYCLES ================= */
+function prevLine(exIdx){
+  const p=U().prev;if(!p||!p.logs)return '';
+  const rows=p.logs[logKey(exIdx)];if(!rows||!rows.length)return '';
+  const parts=rows.filter(r=>r&&(r.w!=null||r.r!=null)).map(r=>`${r.w??'—'}×${r.r??'—'}`);
+  if(!parts.length)return '';
+  return `<div class="prevline">Last cycle · ${parts.join(' · ')} lb</div>`;
+}
+let cycleArm=false;
+function startNewCycle(){
+  const btn=document.getElementById('cycleBtn');
+  if(!cycleArm){
+    cycleArm=true;
+    if(btn)btn.textContent='Tap again to confirm';
+    setTimeout(()=>{cycleArm=false;const b=document.getElementById('cycleBtn');if(b)b.textContent='Start New Cycle';},4000);
+    return;
+  }
+  cycleArm=false;
+  const u=U();
+  u.prev={cycle:u.cycle||1,logs:u.logs,archivedOn:new Date().toISOString().slice(0,10)};
+  u.cycle=(u.cycle||1)+1;
+  u.logs={};u.checks={};
+  state.week=1;openEx.clear();
+  save();renderNav();renderDay();renderSetup();
 }
 
 /* ================= TIMER + ALARM ================= */
@@ -730,6 +758,11 @@ function renderSetup(){
   <div class="card"><h3>${displayName(state.activeUser)} — Bodyweight Goal</h3>
     <div class="maxrow"><label>Start weight (lb)</label><input type="number" inputmode="decimal" value="${u.start??''}" onchange="setBW('start',this.value)"></div>
     <div class="maxrow"><label>Goal weight (lb)</label><input type="number" inputmode="decimal" value="${u.goal??''}" onchange="setBW('goal',this.value)"></div>
+  </div>
+  <div class="card"><h3>${displayName(state.activeUser)} — Program Cycle</h3>
+    <div class="note" style="margin-bottom:10px">Currently on <b style="color:var(--ink)">Cycle ${u.cycle||1}</b>${u.prev?` — Cycle ${u.prev.cycle} archived ${u.prev.archivedOn||''}. Its numbers show as “Last cycle” on every exercise.`:'. Finish the 6 weeks, retest your maxes, then restart here.'}</div>
+    <div class="ex-actions"><button class="btn" id="cycleBtn" onclick="startNewCycle()">Start New Cycle</button></div>
+    <div class="note" style="margin-top:8px">Archives this cycle's logs for reference and clears the board back to Week 1. Bodyweight history and 1RMs carry over — update your maxes after retesting so the new cycle's targets rise with you.</div>
   </div>
   <div class="card"><h3>Cloud Sync</h3>
     <div class="note" style="margin-bottom:10px">Paste your Firebase database URL once per phone. After that, every set syncs automatically — both profiles, all devices, no backup codes needed.</div>
