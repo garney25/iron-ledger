@@ -410,7 +410,7 @@ function setChip(m){
   else if(m==='nostore'){c.textContent='Not saving — check connection';c.classList.add('show','warn');}
   else if(m==='failed'){c.textContent='Save failed — will retry';c.classList.add('show','warn');}
 }
-let saveT=null,pendingCloud=false;
+let saveT=null;
 async function writeLocal(payload){
   const s=stor();
   if(saveMode!=='local'&&s){
@@ -420,7 +420,51 @@ async function writeLocal(payload){
   if(localOK()){try{window.localStorage.setItem(KEY,payload);saveMode='local';return 'local';}catch(e){}}
   return null;
 }
+const DEFAULT_SYNC_URL='https://iron-ledger-f988e-default-rtdb.firebaseio.com'; /* baked in — every copy connects automatically */
 function cloudPath(user){return state.syncUrl.replace(/\/+$/,'')+'/iron-ledger/users/'+user+'.json';}
+function mergeRows(a,b){
+  const len=Math.max(a?a.length:0,b?b.length:0);const out=[];
+  for(let i=0;i<len;i++){
+    const x=a&&a[i],y=b&&b[i];
+    if(!x){out[i]=y;continue;} if(!y){out[i]=x;continue;}
+    const score=r=>((r&&r.done)?2:0)+((r&&r.w!=null)?1:0)+((r&&r.r!=null)?1:0);
+    out[i]=score(y)>score(x)?y:x;
+  }
+  return out;
+}
+function mergeUser(l,r){
+  if(!r)return l||blankUser(null);
+  if(!l)return Object.assign(blankUser(null),r);
+  const m=blankUser(null);
+  const newer=(r.updatedAt||0)>(l.updatedAt||0)?r:l;
+  m.updatedAt=Math.max(l.updatedAt||0,r.updatedAt||0);
+  m.start=newer.start!=null?newer.start:(l.start!=null?l.start:r.start);
+  m.goal=newer.goal!=null?newer.goal:(l.goal!=null?l.goal:r.goal);
+  const mk={};
+  new Set([...Object.keys(l.maxes||{}),...Object.keys(r.maxes||{})]).forEach(k=>{
+    const nv=newer.maxes&&newer.maxes[k];
+    mk[k]=nv!=null?nv:((l.maxes&&l.maxes[k]!=null)?l.maxes[k]:(r.maxes?r.maxes[k]:null));
+  });
+  m.maxes=mk;
+  const wm={};(r.weights||[]).forEach(w=>{wm[w.d]=w;});
+  (l.weights||[]).forEach(w=>{if(!wm[w.d]||newer===l)wm[w.d]=w;});
+  m.weights=Object.values(wm).sort((a,b)=>a.d.localeCompare(b.d));
+  const lc=l.cycle||1,rc=r.cycle||1;
+  if(lc!==rc){
+    const hi=lc>rc?l:r;
+    m.cycle=hi.cycle;m.prev=hi.prev||null;
+    m.logs=Object.assign({},hi.logs);m.checks=Object.assign({},hi.checks);
+  }else{
+    m.cycle=lc;m.prev=newer.prev||l.prev||r.prev||null;
+    const lg={};
+    new Set([...Object.keys(l.logs||{}),...Object.keys(r.logs||{})]).forEach(k=>{lg[k]=mergeRows(l.logs&&l.logs[k],r.logs&&r.logs[k]);});
+    m.logs=lg;
+    const ck={};
+    new Set([...Object.keys(l.checks||{}),...Object.keys(r.checks||{})]).forEach(k=>{ck[k]=!!((l.checks&&l.checks[k])||(r.checks&&r.checks[k]));});
+    m.checks=ck;
+  }
+  return m;
+}
 async function cloudPush(){
   if(!state.syncUrl)return 'nosync';
   try{
@@ -428,18 +472,14 @@ async function cloudPush(){
     return r.ok?'ok':'fail';
   }catch(e){return 'fail';}
 }
-async function cloudPull(user,force){
+async function cloudPull(user){
   if(!state.syncUrl)return false;
   try{
     const r=await fetch(cloudPath(user)+'?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)return false;
     const remote=await r.json();
-    if(remote&&typeof remote==='object'){
-      const local=state.users[user];
-      if(force||(remote.updatedAt||0)>(local.updatedAt||0)){state.users[user]=Object.assign(blankUser(null),remote);}
-      else if((local.updatedAt||0)>(remote.updatedAt||0)){pendingCloud=true;}
-      return true;
-    }
+    state.users[user]=mergeUser(state.users[user],remote);
+    return true;
   }catch(e){}
   return false;
 }
@@ -564,13 +604,17 @@ function renderDay(){
     const rows=U().logs[logKey(i)]||[];
     const doneCount=rows.filter(r=>r&&r.done).length;
     const open=openEx.has(i)||(doneCount>0&&doneCount<nSets);
+    const prows=(U().prev&&U().prev.logs&&U().prev.logs[logKey(i)])||[];
     let setRows='';
     for(let s=0;s<nSets;s++){
       const r=rows[s]||{};
+      const pv=prows[s]||{};
+      const vw=r.w!=null?r.w:(pv.w!=null?pv.w:'');
+      const vr=r.r!=null?r.r:(pv.r!=null?pv.r:'');
       setRows+=`<div class="setrow${r.done?' done':''}">
         <div class="lbl">${s+1}</div>
-        <input type="number" inputmode="decimal" placeholder="lb" value="${r.w??''}" onchange="setVal(${i},${s},'w',this.value)">
-        <input type="number" inputmode="numeric" placeholder="reps" value="${r.r??''}" onchange="setVal(${i},${s},'r',this.value)">
+        <input type="number" inputmode="decimal" placeholder="lb" id="in-${i}-${s}-w" value="${vw}" onchange="setVal(${i},${s},'w',this.value)">
+        <input type="number" inputmode="numeric" placeholder="reps" id="in-${i}-${s}-r" value="${vr}" onchange="setVal(${i},${s},'r',this.value)">
         <button class="ok" onclick="toggleSet(${i},${s},${ex.rest||90})">${r.done?'✓':'○'}</button>
       </div>`;
     }
@@ -612,7 +656,13 @@ function setVal(exIdx,setIdx,field,val){
 function toggleSet(exIdx,setIdx,rest){
   const k=logKey(exIdx);if(!U().logs[k])U().logs[k]=[];
   if(!U().logs[k][setIdx])U().logs[k][setIdx]={};
-  const r=U().logs[k][setIdx];r.done=!r.done;save();
+  const r=U().logs[k][setIdx];
+  // capture whatever is in the boxes (typed or pre-filled from last cycle)
+  const ew=document.getElementById('in-'+exIdx+'-'+setIdx+'-w');
+  const er=document.getElementById('in-'+exIdx+'-'+setIdx+'-r');
+  if(ew&&ew.value!=='')r.w=Number(ew.value);
+  if(er&&er.value!=='')r.r=Number(er.value);
+  r.done=!r.done;save();
   if(r.done)startTimer(rest);
   renderNav();renderDay();
 }
@@ -788,27 +838,20 @@ async function connectSync(){
   let url=(inp.value||'').trim().replace(/\/+$/,'');
   if(!/^https:\/\//.test(url)){stat.textContent='URL must start with https://';stat.className='syncstat bad';return;}
   stat.textContent='Testing connection…';stat.className='syncstat';
+  const prevUrl=state.syncUrl;
   state.syncUrl=url;
-  try{
-    const r=await fetch(cloudPath(state.activeUser)+'?t='+Date.now(),{cache:'no-store'});
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const remote=await r.json();
-    if(remote&&(remote.updatedAt||0)>(U().updatedAt||0)){
-      state.users[state.activeUser]=Object.assign(blankUser(null),remote);
-      stat.textContent='Connected ✓ — cloud data loaded for '+displayName(state.activeUser)+'.';
-    }else{
-      await cloudPush();
-      stat.textContent='Connected ✓ — this device\u2019s data uploaded to the cloud.';
-    }
-    stat.className='syncstat ok';
-    save();renderNav();renderDay();renderSetup();
-    document.getElementById('syncStat').textContent='Connected ✓ — data syncs on every save.';
-    document.getElementById('syncStat').className='syncstat ok';
-  }catch(e){
-    state.syncUrl='';
+  const ok=await cloudPull(state.activeUser);
+  if(!ok){
+    state.syncUrl=(prevUrl&&prevUrl!==url)?prevUrl:'';
     stat.textContent='Couldn\u2019t reach that URL — check it and that database rules allow read/write.';
     stat.className='syncstat bad';
+    return;
   }
+  await cloudPush();
+  save();renderNav();renderDay();renderSetup();
+  const s2=document.getElementById('syncStat');
+  s2.textContent='Connected ✓ — cloud and device data merged; syncing on every save.';
+  s2.className='syncstat ok';
 }
 async function syncNow(){
   const stat=document.getElementById('syncStat');
@@ -861,16 +904,24 @@ function switchView(v){
   state.day=map[new Date().getDay()];
   renderUsers();renderNav();renderDay();
   const ok=await load();
+  if(DEFAULT_SYNC_URL&&!state.syncUrl)state.syncUrl=DEFAULT_SYNC_URL;
   state.day=map[new Date().getDay()];
   renderUsers();renderNav();renderDay();
   if(!ok)setChip('nostore');
   if(state.syncUrl){
     await cloudPull(state.activeUser);
     renderUsers();renderNav();renderDay();
-    if(pendingCloud){pendingCloud=false;cloudPush();}
+    cloudPush();
   }
   window.addEventListener('pagehide',flushNow);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushNow();});
+  document.addEventListener('visibilitychange',async()=>{
+    if(document.visibilityState==='hidden'){flushNow();return;}
+    if(state.syncUrl){ // app came back to foreground — merge in anything from other devices
+      await cloudPull(state.activeUser);
+      renderNav();renderDay();
+      if(document.getElementById('view-weight').classList.contains('on'))renderWeight();
+    }
+  });
 })();
 </script>
 </body>
