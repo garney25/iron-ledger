@@ -528,10 +528,12 @@ const MAX_LIFTS=[
 ];
 
 /* ================= STATE / STORAGE / SYNC ================= */
-// Same Firebase database Iron Ledger uses, on a separate path so the two never collide.
+// Same Firebase database Iron Ledger uses. Stored under the iron-ledger/users node
+// (the node Iron Ledger's security rules already permit), on its own distinct key so
+// it can't collide with Iron Ledger's own data.
 const KEY="ruby-ledger-v1";
 const SYNC_URL="https://iron-ledger-f988e-default-rtdb.firebaseio.com";
-const CLOUD=SYNC_URL.replace(/\/+$/,"")+"/ruby-ledger/users/main.json";
+const CLOUD=SYNC_URL.replace(/\/+$/,"")+"/iron-ledger/users/ruby-ledger.json";
 
 function defaults(){return {unit:"kg",theme:null,week:1,day:"Sun",cycle:1,prev:null,
   logs:{},checks:{},cores:{},runs:{},done:{},maxes:{},notes:{},custom:{},bw:[],bwGoal:null,updatedAt:0};}
