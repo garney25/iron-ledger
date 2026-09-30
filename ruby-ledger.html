@@ -98,6 +98,10 @@
   .sess .fill{height:100%;background:var(--pink);border-radius:999px;transition:width .35s ease;width:0}
   .sess .lbl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:7px;font-weight:600}
   .sess .lbl b{color:var(--pink)}
+  .pstrip{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .pstrip .k{font-size:12px;font-weight:700;color:var(--text)}
+  .pstrip .s{font-size:11px;color:var(--faint);margin-top:2px;line-height:1.35}
+  .pstrip .g{font-family:var(--disp);font-size:20px;font-weight:600;color:var(--pink);white-space:nowrap}
 
   .weekbanner{margin-top:12px;border-radius:13px;padding:13px 15px;border:1px solid var(--pink-deep);background:linear-gradient(100deg,var(--pink-wash),transparent)}
   .weekbanner.deload{border-color:var(--gold);background:linear-gradient(100deg,color-mix(in srgb,var(--gold) 18%,transparent),transparent)}
@@ -289,6 +293,103 @@
   .synk.ok{color:var(--done);border-color:var(--done)}
   .synk.warn{color:var(--warn);border-color:var(--warn)}
   .foot{color:var(--faint);font-size:11.5px;text-align:center;margin:26px 0 8px;line-height:1.5}
+
+  /* ===================== LIQUID GLASS FUSION ===================== */
+  :root{
+    --glass:rgba(255,255,255,.10); --glass-2:rgba(255,255,255,.15);
+    --glass-brd:rgba(255,255,255,.24);
+    --glass-hi:inset 0 1px 0 rgba(255,255,255,.30), inset 0 0 0 .5px rgba(255,255,255,.10);
+    --glass-sh:0 12px 32px -14px rgba(0,0,0,.65);
+    --blur:blur(22px) saturate(165%); --blur-lite:blur(13px) saturate(150%);
+  }
+  @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+    --glass:rgba(255,255,255,.50); --glass-2:rgba(255,255,255,.64);
+    --glass-brd:rgba(255,255,255,.72);
+    --glass-hi:inset 0 1px 0 rgba(255,255,255,.9), inset 0 0 0 .5px rgba(255,255,255,.45);
+    --glass-sh:0 12px 30px -14px rgba(120,10,60,.30);
+  }}
+  :root[data-theme="light"]{
+    --glass:rgba(255,255,255,.50); --glass-2:rgba(255,255,255,.64);
+    --glass-brd:rgba(255,255,255,.72);
+    --glass-hi:inset 0 1px 0 rgba(255,255,255,.9), inset 0 0 0 .5px rgba(255,255,255,.45);
+    --glass-sh:0 12px 30px -14px rgba(120,10,60,.30);
+  }
+
+  /* vibrant backdrop the glass refracts */
+  body{background:
+    radial-gradient(55% 40% at 12% 5%, rgba(255,61,127,.32), transparent 60%),
+    radial-gradient(52% 36% at 92% 15%, rgba(255,150,120,.24), transparent 55%),
+    radial-gradient(66% 52% at 50% 106%, rgba(180,90,255,.26), transparent 60%),
+    var(--bg);}
+  @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]) body{background:
+    radial-gradient(55% 42% at 12% 5%, #ffd9ea, transparent 60%),
+    radial-gradient(52% 36% at 92% 15%, #ffc9b3, transparent 55%),
+    radial-gradient(66% 52% at 50% 106%, #ecc3ff, transparent 60%),
+    linear-gradient(160deg,#ffe6f2,#ffd5e8 48%,#f6d0f2);}}
+  :root[data-theme="light"] body{background:
+    radial-gradient(55% 42% at 12% 5%, #ffd9ea, transparent 60%),
+    radial-gradient(52% 36% at 92% 15%, #ffc9b3, transparent 55%),
+    radial-gradient(66% 52% at 50% 106%, #ecc3ff, transparent 60%),
+    linear-gradient(160deg,#ffe6f2,#ffd5e8 48%,#f6d0f2);}
+
+  /* strong glass: primary cards */
+  .hero,.card,.summary{
+    background:var(--glass-2)!important;
+    backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--glass-brd);box-shadow:var(--glass-sh),var(--glass-hi);position:relative}
+  .hero::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:linear-gradient(160deg,rgba(255,255,255,.4),rgba(255,255,255,0) 30%)}
+  .hero>*{position:relative;z-index:1}
+
+  /* lighter glass: repeated / list surfaces */
+  .ex,.sess,.pstrip,.runform,.checklist .item{
+    background:var(--glass)!important;
+    backdrop-filter:var(--blur-lite);-webkit-backdrop-filter:var(--blur-lite);
+    border:1px solid var(--glass-brd);box-shadow:var(--glass-hi)}
+  .weekbanner{
+    background:linear-gradient(120deg, color-mix(in srgb,var(--pink) 22%,transparent), transparent)!important;
+    backdrop-filter:var(--blur-lite);-webkit-backdrop-filter:var(--blur-lite);
+    border:1px solid var(--glass-brd);box-shadow:var(--glass-hi)}
+  .weekbanner.deload{background:linear-gradient(120deg, color-mix(in srgb,var(--gold) 26%,transparent), transparent)!important}
+
+  /* small controls */
+  .wk,.day-pill,.icon-btn,.chip,.pick,.btn{
+    background:var(--glass)!important;
+    backdrop-filter:var(--blur-lite);-webkit-backdrop-filter:var(--blur-lite);
+    border:1px solid var(--glass-brd);box-shadow:var(--glass-hi)}
+  /* selected / accent states keep a glossy pink */
+  .wk.on,.day-pill.active,.pick.on{
+    background:linear-gradient(160deg,var(--pink),var(--pink-deep))!important;
+    border:1px solid rgba(255,255,255,.5)!important;
+    box-shadow:0 8px 20px -7px rgba(199,30,91,.6),var(--glass-hi)!important}
+  .wk.deload.on{background:linear-gradient(160deg,var(--gold),#c98a52)!important}
+  .finish{background:linear-gradient(160deg,var(--pink),var(--pink-deep))!important;
+    border:1px solid rgba(255,255,255,.4);box-shadow:0 14px 28px -12px rgba(199,30,91,.6),var(--glass-hi)}
+  .finish.done{background:var(--done-wash)!important;border:1px solid var(--done);box-shadow:var(--glass-hi)}
+
+  /* input fields → frosted */
+  .set-row .field,.maxrow .inp,.rf .inp,.addbw .inp,.goal-edit input,.notesarea,.fld input,.pillfield{
+    background:var(--glass)!important;border:1px solid var(--glass-brd)!important;
+    backdrop-filter:var(--blur-lite);-webkit-backdrop-filter:var(--blur-lite)}
+
+  /* floating glass tab bar */
+  .nav{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border-top:none!important}
+  .nav-inner{margin:0 14px 12px;border-radius:30px;padding:9px 8px calc(9px + env(safe-area-inset-bottom));
+    background:var(--glass-2);backdrop-filter:blur(28px) saturate(200%);-webkit-backdrop-filter:blur(28px) saturate(200%);
+    border:1px solid var(--glass-brd);box-shadow:var(--glass-sh),var(--glass-hi)}
+  .nav button.on .ic{filter:drop-shadow(0 2px 6px rgba(255,61,127,.55))}
+
+  /* floating glass rest-timer, above the tab bar */
+  .timerbar{left:14px;right:14px;bottom:92px;border-radius:20px;border:1px solid var(--glass-brd)!important;
+    border-top:1px solid var(--glass-brd)!important;
+    background:var(--glass-2)!important;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    box-shadow:var(--glass-sh),var(--glass-hi)}
+  .timerbar .tprog{border-radius:20px 20px 0 0}
+
+  /* sheet + sync chip */
+  .sheet{background:var(--glass-2)!important;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-brd)}
+  .synk{backdrop-filter:var(--blur-lite);-webkit-backdrop-filter:var(--blur-lite);background:var(--glass-2)!important;border:1px solid var(--glass-brd)}
+  @media (prefers-reduced-motion:reduce){*{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}}
 </style>
 </head>
 <body>
@@ -699,7 +800,8 @@ function renderTrain(){
   hero.innerHTML=`<div class="eyebrow">${p.eyebrow}</div><h2>${esc(p.title)}</h2><div class="focus">${p.focus}</div>${metaChips}`;
   root.appendChild(hero);
 
-  if(p.type==="lift")root.appendChild(progressBar(day));
+  root.appendChild(progressBar(day));
+  root.appendChild(proteinStrip());
 
   const wb=el("div","weekbanner"+(W.deload?" deload":""));
   wb.innerHTML=`<div class="wl">Week ${S.week} · ${W.label}${p.type==="lift"?" · "+W.rpe:""}</div><div class="wc">${esc(p.type==="lift"?W.cue:(p.prog||W.cue))}</div>`;
@@ -726,13 +828,47 @@ function renderTrain(){
   root.appendChild(el("div","foot","Tap a section header to collapse it · rest timer beeps when time's up · data syncs to the cloud."));
 }
 
+function runHasData(r){return !!(r&&(r.dist||r.time||r.reps||r.note));}
+// Full session-completion count for the day, whatever the day type.
+function dayProgress(day){
+  const p=PROGRAM[day];let total=0,done=0;
+  const chk=grp=>arr=>arr.forEach((_,i)=>{total++;if(S.checks[chkKey(day,grp,i)])done++;});
+  if(p.warmup)chk("wu")(p.warmup);
+  if(p.type==="lift"){
+    p.cns.forEach((cn,i)=>{
+      if(cn.kind==="check"){total++;if(S.checks[chkKey(day,"cn",i)])done++;}
+      else{const n=adjSets(cn.sets);total+=n;(S.logs[logKey(day,"cns"+i)]||[]).forEach(r=>{if(r&&r.done)done++;});}
+    });
+    effectiveEx(day).forEach(e=>{const n=setsCount(e);total+=n;(S.logs[logKey(day,e.id)]||[]).forEach(r=>{if(r&&r.done)done++;});});
+  } else if(p.type==="mobility"){
+    chk("mob")(p.mobility);chk("ath")(p.athletic);chk("up")(p.upper);
+    total+=3;done+=Math.min(3,(S.cores[coreKey(day)]||[]).length);
+  } else if(p.type==="sprint"){
+    total+=1;if(runHasData(S.runs[runKey(day)]))done++;
+    total+=3;done+=Math.min(3,(S.cores[coreKey(day)]||[]).length);
+  } else if(p.type==="run"){
+    total+=1;if(runHasData(S.runs[runKey(day)]))done++;
+  }
+  if(p.finish)chk("fn")(p.finish);
+  done=Math.min(done,total);
+  return {total,done,pct:total?Math.round(100*done/total):0};
+}
 function progressBar(day){
-  const list=effectiveEx(day);let total=0,done=0;
-  list.forEach(e=>{const n=setsCount(e);total+=n;(S.logs[logKey(day,e.id)]||[]).forEach(r=>{if(r&&r.done)done++;});});
-  done=Math.min(done,total);const pct=total?Math.round(100*done/total):0;
+  const c=dayProgress(day);
   const w=el("div","sess");
-  w.innerHTML=`<div class="bar"><div class="fill" style="width:${pct}%"></div></div><div class="lbl"><span>Session progress</span><span><b>${done}</b> / ${total} sets</span></div>`;
+  w.innerHTML=`<div class="bar"><div class="fill" style="width:${c.pct}%"></div></div><div class="lbl"><span>Session progress</span><span><b>${c.done}</b> / ${c.total} done · ${c.pct}%</span></div>`;
   return w;
+}
+// Protein target strip (Iron Ledger parity): 1 g per lb of bodyweight, from latest weigh-in.
+function proteinStrip(){
+  const data=[...S.bw].sort((a,b)=>a.d<b.d?-1:1);
+  const latest=data.length?data[data.length-1].v:null;
+  const grams=latest!=null?Math.round(S.unit==="lb"?latest:latest*2.2):null;
+  const val=grams!=null?("~"+grams+" g"):"— g";
+  const sub=grams!=null?"1 g per lb of bodyweight — updates with weigh-ins":"Log a weigh-in on the Weight tab to set this";
+  const s=el("div","pstrip");
+  s.innerHTML=`<div><div class="k">Protein today</div><div class="s">${sub}</div></div><div class="g">${val}</div>`;
+  return s;
 }
 
 function checklistBlock(title,items,day,grp){
@@ -742,7 +878,7 @@ function checklistBlock(title,items,day,grp){
     const k=chkKey(day,grp,i);const on=!!S.checks[k];
     const row=el("div","item"+(on?" on":""));
     row.innerHTML=`<div class="chk-ico">${wuIconFor(it)}</div><div class="box">✓</div><div class="txt">${esc(it)}</div>`;
-    row.onclick=()=>{const nv=!row.classList.contains("on");row.classList.toggle("on",nv);S.checks[k]=nv;save();};
+    row.onclick=()=>{const nv=!row.classList.contains("on");row.classList.toggle("on",nv);S.checks[k]=nv;save();root_refreshProgress(day);};
     cl.appendChild(row);
   });
   body.appendChild(cl);
@@ -834,7 +970,7 @@ function renderLift(root,p,day){
       const card=el("div","ex");
       const k=chkKey(day,"cn",i);const on=!!S.checks[k];
       card.innerHTML=`<div class="ex-head" style="cursor:default"><div class="ex-ico">${iconFor(cn.name)}</div><div class="ex-main"><div class="ex-name">${esc(cn.name)}</div><div class="ex-rx">${adjSets(cn.sets)} × ${cn.reps}</div>${cn.note?'<div class="ex-note">'+esc(cn.note)+'</div>':''}</div><div class="ex-right"><button class="check${on?" on":""}">✓</button></div></div>`;
-      card.querySelector(".check").onclick=function(){this.classList.toggle("on");S.checks[k]=this.classList.contains("on");save();};
+      card.querySelector(".check").onclick=function(){this.classList.toggle("on");S.checks[k]=this.classList.contains("on");save();root_refreshProgress(day);};
       cbody.appendChild(card);
     } else {
       const e=Object.assign({},cn,{id:"cns"+i});
@@ -859,7 +995,7 @@ function renderMobility(root,p,day){
       const k=chkKey(day,grp,i);const on=!!S.checks[k];
       const row=el("div","item"+(on?" on":""));
       row.innerHTML=`<div class="chk-ico">${wuIconFor(name)}</div><div class="box">✓</div><div class="txt">${esc(name)}${sub?'<small>'+esc(sub)+'</small>':''}</div>`;
-      row.onclick=()=>{const nv=!row.classList.contains("on");row.classList.toggle("on",nv);S.checks[k]=nv;save();};
+      row.onclick=()=>{const nv=!row.classList.contains("on");row.classList.toggle("on",nv);S.checks[k]=nv;save();root_refreshProgress(day);};
       cl.appendChild(row);
     });
     body.appendChild(cl);return b;
@@ -878,7 +1014,7 @@ function corePicker(day,label){
   const upd=()=>{count.textContent=chosen.size+" / 3 selected";};
   CORE_MENU.forEach(name=>{
     const pb=el("button","pick"+(chosen.has(name)?" on":""),esc(name));
-    pb.onclick=()=>{if(chosen.has(name))chosen.delete(name);else{if(chosen.size>=3){toast("Pick 3 — deselect one first");return;}chosen.add(name);}pb.classList.toggle("on",chosen.has(name));S.cores[key]=[...chosen];save();upd();};
+    pb.onclick=()=>{if(chosen.has(name))chosen.delete(name);else{if(chosen.size>=3){toast("Pick 3 — deselect one first");return;}chosen.add(name);}pb.classList.toggle("on",chosen.has(name));S.cores[key]=[...chosen];save();upd();root_refreshProgress(day);};
     pick.appendChild(pb);
   });
   body.appendChild(count);body.appendChild(pick);upd();return b;
@@ -891,7 +1027,7 @@ function renderRun(root,p,day){
   box.appendChild(form);root.appendChild(box);
   const d=$("#rDist",form),t=$("#rTime",form),n=$("#rNote",form),pc=$("#rPace",form);
   const calc=()=>{const dd=+d.value,tt=+t.value;if(dd>0&&tt>0){const p2=tt/dd,mm=Math.floor(p2),ss=Math.round((p2-mm)*60);pc.textContent=`Pace ≈ ${mm}:${String(ss).padStart(2,'0')} min/${du}`;}else pc.textContent="";};
-  const persist=()=>{S.runs[runKey(day)]={dist:d.value===""?null:+d.value,time:t.value===""?null:+t.value,note:n.value};save();calc();};
+  const persist=()=>{S.runs[runKey(day)]={dist:d.value===""?null:+d.value,time:t.value===""?null:+t.value,note:n.value};save();calc();root_refreshProgress(day);};
   d.onchange=persist;t.onchange=persist;n.onchange=persist;calc();
 }
 function renderSprint(root,p,day){
@@ -900,7 +1036,7 @@ function renderSprint(root,p,day){
   form.innerHTML=`<div class="runrow"><div class="rf"><label>Reps done</label><div class="inp"><input id="sReps" type="number" inputmode="numeric" placeholder="8" value="${r.reps??''}"><span class="u">×</span></div></div><div class="rf"><label>Distance / effort</label><div class="inp"><input id="sDist" type="text" placeholder="100m" value="${esc(r.dist||'')}"><span class="u"></span></div></div></div><div class="rf"><label>Notes</label><div class="inp"><textarea id="sNote" placeholder="Felt fast on reps 1–5...">${esc(r.note||'')}</textarea></div></div>`;
   box.appendChild(form);root.appendChild(box);
   const reps=$("#sReps",form),d=$("#sDist",form),n=$("#sNote",form);
-  const persist=()=>{S.runs[runKey(day)]={reps:reps.value===""?null:+reps.value,dist:d.value,note:n.value};save();};
+  const persist=()=>{S.runs[runKey(day)]={reps:reps.value===""?null:+reps.value,dist:d.value,note:n.value};save();root_refreshProgress(day);};
   reps.onchange=persist;d.onchange=persist;n.onchange=persist;
   root.appendChild(corePicker(day,"Core · pick any 3"));
 }
