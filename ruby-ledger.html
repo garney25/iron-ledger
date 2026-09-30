@@ -64,11 +64,10 @@
     color:var(--muted);font-size:14px;font-weight:600;display:grid;place-items:center;transition:.15s}
   .icon-btn:hover{color:var(--pink);border-color:var(--pink)}
 
-  .weeks{display:flex;gap:6px;overflow-x:auto;padding:12px 16px 2px;max-width:760px;margin:0 auto;scrollbar-width:none}
-  .weeks::-webkit-scrollbar{display:none}
-  .wk{flex:0 0 auto;min-width:66px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:7px 9px;text-align:center;transition:.15s}
-  .wk .n{font-family:var(--disp);font-size:16px;font-weight:600;line-height:1}
-  .wk small{font-size:9.5px;color:var(--faint);letter-spacing:.02em;text-transform:uppercase;display:block;margin-top:2px}
+  .weeks{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;padding:12px 12px 2px;max-width:760px;margin:0 auto}
+  .wk{min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:7px 3px;text-align:center;transition:.15s}
+  .wk .n{font-family:var(--disp);font-size:15px;font-weight:600;line-height:1}
+  .wk small{font-size:8px;color:var(--faint);letter-spacing:0;text-transform:uppercase;display:block;margin-top:2px;white-space:nowrap}
   .wk.on{background:var(--pink);border-color:var(--pink)}
   .wk.on .n,.wk.on small{color:#fff}
   .wk.deload.on{background:var(--gold);border-color:var(--gold)}
@@ -801,7 +800,6 @@ function renderTrain(){
   root.appendChild(hero);
 
   root.appendChild(progressBar(day));
-  root.appendChild(proteinStrip());
 
   const wb=el("div","weekbanner"+(W.deload?" deload":""));
   wb.innerHTML=`<div class="wl">Week ${S.week} · ${W.label}${p.type==="lift"?" · "+W.rpe:""}</div><div class="wc">${esc(p.type==="lift"?W.cue:(p.prog||W.cue))}</div>`;
