@@ -486,8 +486,8 @@ function iconFor(name){
 /* ================= STATE / STORAGE / SYNC ================= */
 const KEY='iron-ledger-v1';
 const USERS=['garney','shane'];
-function blankUser(start){return {logs:{},checks:{},weights:[],maxes:{},goal:210,start:start||null,cycle:1,prev:null,program:null,bar:DEFAULT_BAR,plates:DEFAULT_PLATES.slice(),updatedAt:0};}
-let state={v:3,activeUser:'garney',week:1,day:'sun',syncUrl:'',theme:'system',accent:0,users:{garney:blankUser(193),shane:blankUser(null)}};
+function blankUser(start){return {logs:{},checks:{},weights:[],maxes:{},goal:210,start:start||null,cycle:1,prev:null,program:null,bar:DEFAULT_BAR,plates:DEFAULT_PLATES.slice(),accent:0,updatedAt:0};}
+let state={v:3,activeUser:'garney',week:1,day:'sun',syncUrl:'',theme:'system',users:{garney:blankUser(193),shane:blankUser(null)}};
 function U(){return state.users[state.activeUser];}
 function migrate(s){
   if(s&&s.v===3&&s.users){USERS.forEach(u=>{s.users[u]=Object.assign(blankUser(null),s.users[u]||{});});return s;}
@@ -564,6 +564,7 @@ function mergeUser(l,r){
   m.program=newer.program!==undefined?newer.program:(l.program||r.program||null);
   m.bar=newer.bar!=null?newer.bar:(l.bar!=null?l.bar:(r.bar!=null?r.bar:DEFAULT_BAR));
   m.plates=(newer.plates&&newer.plates.length)?newer.plates:((l.plates&&l.plates.length)?l.plates:(r.plates||DEFAULT_PLATES.slice()));
+  m.accent=newer.accent!=null?newer.accent:(l.accent!=null?l.accent:(r.accent!=null?r.accent:0));
   const mk={};
   new Set([...Object.keys(l.maxes||{}),...Object.keys(r.maxes||{})]).forEach(k=>{
     const nv=newer.maxes&&newer.maxes[k];
@@ -725,11 +726,13 @@ async function switchUser(u){
   if(u===state.activeUser)return;
   flushNow();
   state.activeUser=u;openEx.clear();
+  applyAppearance();
   renderUsers();renderNav();renderDay();
   if(document.getElementById('view-weight').classList.contains('on'))renderWeight();
   if(document.getElementById('view-setup').classList.contains('on'))renderSetup();
   setChip('saving');
   await cloudPull(u);
+  applyAppearance();
   renderNav();renderDay();
   if(document.getElementById('view-weight').classList.contains('on'))renderWeight();
   save();
@@ -1050,7 +1053,7 @@ function renderSetup(){
   <div class="card"><h3>Appearance</h3>
     <div class="seg">${['system','light','dark'].map(t=>`<button class="${(state.theme||'system')===t?'on':''}" onclick="setTheme('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('')}</div>
     <div class="note" style="margin:12px 0 9px">Accent colour</div>
-    <div class="adots">${AX.map((x,i)=>`<button class="adot${(state.accent||0)===i?' on':''}" title="${x[0]}" style="background:linear-gradient(150deg,${x[1]},${x[2]})" onclick="setAccent(${i})"></button>`).join('')}</div>
+    <div class="adots">${AX.map((x,i)=>`<button class="adot${(U().accent||0)===i?' on':''}" title="${x[0]}" style="background:linear-gradient(150deg,${x[1]},${x[2]})" onclick="setAccent(${i})"></button>`).join('')}</div>
   </div>
   <div class="card"><h3>${displayName(state.activeUser)} — 1-Rep Maxes</h3>
     <div class="note" style="margin-bottom:12px">Every main-lift target is calculated from these. Best estimates are fine; retest after week 6.</div>
@@ -1241,7 +1244,7 @@ function effDark(){const t=state.theme||'system';if(t==='light')return false;if(
 function applyAppearance(){
   const t=state.theme||'system';const r=document.documentElement;
   if(t==='system')r.removeAttribute('data-theme');else r.setAttribute('data-theme',t);
-  const p=AX[state.accent||0]||AX[0];const rs=r.style;
+  const p=AX[(U()&&U().accent!=null?U().accent:0)]||AX[0];const rs=r.style;
   if(effDark()){rs.setProperty('--accent',p[1]);rs.setProperty('--accent-2',p[2]);rs.setProperty('--accent-ink',p[3]);rs.setProperty('--accent-soft',hexA(p[1],.15));}
   else{rs.setProperty('--accent',p[2]);rs.setProperty('--accent-2',p[1]);rs.setProperty('--accent-ink','#ffffff');rs.setProperty('--accent-soft',hexA(p[2],.12));}
   const s1=document.getElementById('ils1'),s2=document.getElementById('ils2');
@@ -1249,11 +1252,11 @@ function applyAppearance(){
 }
 function renderAppPop(){var el=document.getElementById('apPop');if(!el)return;
   el.innerHTML='<h4>Theme</h4><div class="seg">'+['system','light','dark'].map(function(t){return '<button class="'+((state.theme||'system')===t?'on':'')+'" onclick="setTheme(\''+t+'\')">'+t.charAt(0).toUpperCase()+t.slice(1)+'</button>';}).join('')+'</div>'+
-    '<h4>Accent</h4><div class="adots">'+AX.map(function(x,i){return '<button class="adot'+((state.accent||0)===i?' on':'')+'" title="'+x[0]+'" style="background:linear-gradient(150deg,'+x[1]+','+x[2]+')" onclick="setAccent('+i+')"></button>';}).join('')+'</div>';}
+    '<h4>Accent</h4><div class="adots">'+AX.map(function(x,i){return '<button class="adot'+((U().accent||0)===i?' on':'')+'" title="'+x[0]+'" style="background:linear-gradient(150deg,'+x[1]+','+x[2]+')" onclick="setAccent('+i+')"></button>';}).join('')+'</div>';}
 function toggleAppPop(e){if(e)e.stopPropagation();var el=document.getElementById('apPop');el.hidden=!el.hidden;if(!el.hidden)renderAppPop();}
 document.addEventListener('click',function(e){var el=document.getElementById('apPop');var b=document.getElementById('apBtn');if(el&&!el.hidden&&!el.contains(e.target)&&b&&!b.contains(e.target))el.hidden=true;});
 function setTheme(t){state.theme=t;applyAppearance();save();var ap=document.getElementById('apPop');if(ap&&!ap.hidden)renderAppPop();if(document.getElementById('view-setup').classList.contains('on'))renderSetup();}
-function setAccent(i){state.accent=i;applyAppearance();save();var ap=document.getElementById('apPop');if(ap&&!ap.hidden)renderAppPop();if(document.getElementById('view-setup').classList.contains('on'))renderSetup();}
+function setAccent(i){U().accent=i;applyAppearance();save();var ap=document.getElementById('apPop');if(ap&&!ap.hidden)renderAppPop();if(document.getElementById('view-setup').classList.contains('on'))renderSetup();}
 try{matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{if((state.theme||'system')==='system')applyAppearance();});}catch(e){}
 function switchView(v){
   ['train','weight','progress','setup'].forEach(x=>{
