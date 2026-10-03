@@ -46,7 +46,7 @@
   :root[data-theme="dark"]{ color-scheme:dark; }
 
   *{box-sizing:border-box}
-  html,body{margin:0}
+  html,body{margin:0;width:100%;max-width:100%;overflow-x:hidden}
   body{font-family:var(--sans);color:var(--text);
     background:radial-gradient(120% 60% at 100% 0%, var(--bg-grad) 0%, transparent 60%),var(--bg);
     min-height:100vh;-webkit-font-smoothing:antialiased;padding:0 0 150px}
@@ -1230,7 +1230,7 @@ document.querySelectorAll(".nav button").forEach(b=>{
     document.querySelectorAll(".nav button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
     const v=b.dataset.view;
     document.querySelectorAll(".view").forEach(x=>x.classList.remove("on"));$("#view-"+v).classList.add("on");
-    const showStrips=v==="train";$("#weeks").style.display=showStrips?"flex":"none";$("#week").style.display=showStrips?"flex":"none";
+    const showStrips=v==="train";$("#weeks").style.display=showStrips?"":"none";$("#week").style.display=showStrips?"":"none";
     renderCurrent();window.scrollTo({top:0});
   };
 });
