@@ -143,14 +143,15 @@
   .ex-body{margin-top:4px}
 
   .sets{margin-top:9px}
-  .set-row{display:grid;grid-template-columns:34px 1fr 1fr 40px;gap:7px;align-items:center;padding:5px 0;border-top:1px solid var(--line-soft)}
+  .set-row{padding:5px 0;border-top:1px solid var(--line-soft)}
+  .set-grid{display:grid;grid-template-columns:34px 1fr 1fr 40px;gap:7px;align-items:center}
   .set-row:first-child{border-top:none}
   .set-n{font-size:12px;color:var(--faint);font-weight:600;text-align:center}
   .set-row .field{display:flex;align-items:center;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;overflow:hidden}
   .set-row .field input{width:100%;border:none;background:transparent;color:var(--text);font-size:15px;font-weight:600;padding:8px 4px 8px 9px;text-align:right;min-width:0}
   .set-row .field .u{font-size:11px;color:var(--faint);padding:0 8px 0 2px;white-space:nowrap}
   .set-row .field:focus-within{border-color:var(--pink)}
-  .last{grid-column:2 / 4;font-size:10.5px;color:var(--faint);margin:-2px 0 2px;padding-left:2px}
+  .last{font-size:10.5px;color:var(--faint);margin:0 0 5px;padding-left:2px}
   .last b{color:var(--pink-soft);font-weight:600}
   .check{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-2);color:transparent;font-size:15px;display:grid;place-items:center;transition:.13s;justify-self:end}
   .check.on{background:var(--done-wash);border-color:var(--done);color:var(--done)}
@@ -911,13 +912,20 @@ function exerciseCard(e,day){
   const open=exToggle.has(key)?exToggle.get(key):defOpen;
 
   const tload=e.t1?targetLoad(e):null;
-  const loadHtml=e.t1?(tload?`<div class="load">≈ ${tload}${S.unit}</div>`:`<div class="load set1rm">set 1RM ↗</div>`):"";
+  function loadMarkup(best){
+    if(!e.t1)return"";
+    if(best>0)return `<div class="load" title="Estimated 1-rep max from your best set today">1RM ≈ ${Math.round(best)}${S.unit}</div>`;
+    if(tload)return `<div class="load">target ≈ ${tload}${S.unit}</div>`;
+    return `<div class="load set1rm">log a set →</div>`;
+  }
+  let best0=0;stored.forEach(s=>{if(s){const v=epley(s.w,s.r);if(v>best0)best0=v;}});
+  const loadHtml=loadMarkup(best0);
   const statusHtml=`<div class="ex-status${doneCount>=nSets&&nSets>0?" full":""}">${doneCount>=nSets&&nSets>0?"✓ done":doneCount+" / "+nSets}</div>`;
 
   const head=el("div","ex-head");
   head.innerHTML=`<div class="ex-ico">${iconFor(e.name)}</div>
     <div class="ex-main">${e.t1?`<div class="tag">Main lift · ${wk().rpe}</div>`:""}<div class="ex-name">${esc(e.name)}${e.ss?'<span class="ss-tag">SS '+e.ss+'</span>':''}</div><div class="ex-rx">${nSets} × ${esc(e.reps)}</div></div>
-    <div class="ex-right">${loadHtml}<div class="row2">${statusHtml}<button class="edit-btn" title="Edit">✎</button><span class="chev-ex${open?"":" closed"}">⌄</span></div></div>`;
+    <div class="ex-right"><span class="loadwrap">${loadHtml}</span><div class="row2">${statusHtml}<button class="edit-btn" title="Edit">✎</button><span class="chev-ex${open?"":" closed"}">⌄</span></div></div>`;
   head.querySelector(".edit-btn").onclick=(ev)=>{ev.stopPropagation();openEditSheet(day,e.id);};
   head.onclick=()=>{exToggle.set(key,!open);renderTrain();};
   card.appendChild(head);
@@ -932,9 +940,10 @@ function exerciseCard(e,day){
     const row=el("div","set-row");
     const cur=stored[i]||{};
     const wIn=pf.within&&pf.within[i],cIn=pf.cyc&&pf.cyc[i];
-    row.appendChild(el("div","set-n","#"+(i+1)));
     if(wIn&&(wIn.w!=null||wIn.r!=null))row.appendChild(el("div","last",`last wk · <b>${wIn.w??'—'}${wIn.w!=null?unit:''} × ${wIn.r??'—'}</b>`));
     else if(cIn&&(cIn.w!=null||cIn.r!=null))row.appendChild(el("div","last",`last cycle · <b>${cIn.w??'—'}${cIn.w!=null?unit:''} × ${cIn.r??'—'}</b>`));
+    const g=el("div","set-grid");
+    g.appendChild(el("div","set-n","#"+(i+1)));
     const preW=cur.w!=null?cur.w:(wIn&&wIn.w!=null?wIn.w:(cIn&&cIn.w!=null?cIn.w:""));
     const preR=cur.r!=null?cur.r:(wIn&&wIn.r!=null?wIn.r:(cIn&&cIn.r!=null?cIn.r:""));
     const wf=el("div","field");wf.innerHTML=`<input type="number" inputmode="decimal" step="0.5" placeholder="${e.kind==='load-opt'?'BW':'0'}" value="${preW}"><span class="u">${e.kind==="load-opt"?"+"+unit:unit}</span>`;
@@ -944,7 +953,8 @@ function exerciseCard(e,day){
     function persist(){const arr=S.logs[logKey(day,e.id)]||[];arr[i]={w:wi.value===""?null:+wi.value,r:ri.value===""?null:+ri.value,done:chk.classList.contains("on")};S.logs[logKey(day,e.id)]=arr;save();updateEst();refreshStatus();}
     wi.onchange=persist;ri.onchange=persist;
     chk.onclick=()=>{const turningOn=!chk.classList.contains("on");chk.classList.toggle("on");if(turningOn){if(ri.value===""){const m=String(e.reps).match(/\d+/);if(m)ri.value=m[0];}if(wi.value===""&&preW!=="")wi.value=preW;persist();startTimer(rest);}else persist();};
-    row.appendChild(wf);row.appendChild(rf);row.appendChild(chk);
+    g.appendChild(wf);g.appendChild(rf);g.appendChild(chk);
+    row.appendChild(g);
     sets.appendChild(row);
   }
   bodyWrap.appendChild(sets);
@@ -953,7 +963,7 @@ function exerciseCard(e,day){
   card.appendChild(bodyWrap);
 
   function refreshStatus(){let d=0;(S.logs[logKey(day,e.id)]||[]).forEach(s=>{if(s&&s.done)d++;});d=Math.min(d,nSets);const st=head.querySelector(".ex-status");st.textContent=(d>=nSets&&nSets>0)?"✓ done":d+" / "+nSets;st.classList.toggle("full",d>=nSets&&nSets>0);const bar=$("#view-train .sess .fill");if(bar)root_refreshProgress(day);}
-  function updateEst(){if(!e.t1){est.textContent="";return;}let best=0;(S.logs[logKey(day,e.id)]||[]).forEach(s=>{if(s){const v=epley(s.w,s.r);if(v>best)best=v;}});est.textContent=best?`Est. 1RM ≈ ${Math.round(best)}${unit}`:"";}
+  function updateEst(){if(!e.t1){est.textContent="";return;}let best=0;(S.logs[logKey(day,e.id)]||[]).forEach(s=>{if(s){const v=epley(s.w,s.r);if(v>best)best=v;}});const lw=head.querySelector(".loadwrap");if(lw)lw.innerHTML=loadMarkup(best);est.textContent=best?`Est. 1RM ≈ ${Math.round(best)}${unit} — from your best set today`:"";}
   updateEst();
   return card;
 }
